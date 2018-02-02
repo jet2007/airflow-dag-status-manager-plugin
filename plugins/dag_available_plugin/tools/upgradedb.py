@@ -40,7 +40,7 @@ def run_version_0_0_1():
           PRIMARY KEY (`id`),
           KEY `updated_at` (`updated_at`),
           KEY `created_at` (`created_at`)
-        ) DEFAULT CHARSET=utf8mb4;
+        ) DEFAULT CHARSET=utf8;
     """)
 
 
