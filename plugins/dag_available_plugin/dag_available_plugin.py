@@ -26,8 +26,8 @@ class AirflowModelView(ModelView):
 
 
 class DagAvailableView(wwwutils.SuperUserMixin, AirflowModelView):
-    verbose_name = "DAG Model"
-    verbose_name_plural = "DAG Models"
+    verbose_name = "Dag Active Manager"
+    verbose_name_plural = "Dag Active Manager"
     column_default_sort = 'dag_id'
     can_create = False
     can_delete = False
@@ -36,6 +36,7 @@ class DagAvailableView(wwwutils.SuperUserMixin, AirflowModelView):
     column_list = ('dag_id', 'is_active', 'is_paused', 'owners', 'last_scheduler_run', )
     column_filters = ('dag_id', 'is_active', 'is_paused', 'last_scheduler_run', )
     form_columns = ('is_active', 'is_paused', )
+    page_size = 20
 
     def get_query(self):
         return self.session.query(self.model).filter(self.model.is_subdag == False)
@@ -103,7 +104,7 @@ class DagAvailableView(wwwutils.SuperUserMixin, AirflowModelView):
         return jsonify({"code": -1000, "detail": "no such api", })
 
 
-dag_available_view = DagAvailableView(DagAvailable, settings.Session, category="Browse", name="DAG Models")
+dag_available_view = DagAvailableView(DagAvailable, settings.Session, category="Admin", name="Dag Active Manager")
 
 
 dag_available_bp = Blueprint(
