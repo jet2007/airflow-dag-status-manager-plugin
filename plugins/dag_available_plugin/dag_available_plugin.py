@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-
+import airflow
 from airflow import settings, configuration
 from airflow.plugins_manager import AirflowPlugin
 from airflow.www import utils as wwwutils
@@ -14,6 +14,8 @@ from flask_admin.contrib.sqla import ModelView
 from flask_admin.contrib.sqla.view import func
 from flask_admin.actions import action
 
+from airflow.www import utils as wwwutils
+
 from dag_available_plugin.models import DagAvailable, DagModelAvailableRecord
 
 
@@ -24,8 +26,8 @@ class AirflowModelView(ModelView):
     column_display_actions = True
     page_size = 500
 
-
-class DagAvailableView(wwwutils.SuperUserMixin, AirflowModelView):
+# wwwutils.SuperUserMixin
+class DagAvailableView(AirflowModelView):
     verbose_name = "Dag Active Manager"
     verbose_name_plural = "Dag Active Manager"
     column_default_sort = 'dag_id'
@@ -38,11 +40,21 @@ class DagAvailableView(wwwutils.SuperUserMixin, AirflowModelView):
     form_columns = ('is_active', 'is_paused', )
     page_size = 20
 
+    # 增加限制，非超级用户只能看到自己用户的
     def get_query(self):
-        return self.session.query(self.model).filter(self.model.is_subdag == False)
-
+        if wwwutils.get_filter_by_user():
+            curr_user = airflow.login.current_user
+            return self.session.query(self.model).filter(self.model.is_subdag == False, self.model.owners == curr_user.user.username )
+        else:
+            return self.session.query(self.model).filter(self.model.is_subdag == False)
+    # 增加限制，非超级用户只能看到自己用户的
     def get_count_query(self):
-        return self.session.query(func.count('*')).filter(self.model.is_subdag == False)
+
+        if wwwutils.get_filter_by_user():
+            curr_user = airflow.login.current_user
+            return self.session.query(func.count('*')).filter(self.model.is_subdag == False, self.model.owners == curr_user.user.username)
+        else:
+            return self.session.query(func.count('*')).filter(self.model.is_subdag == False)
 
     @action('set_is_paused', "Set Pause", None)
     def action_set_is_paused(self, ids):
@@ -104,7 +116,7 @@ class DagAvailableView(wwwutils.SuperUserMixin, AirflowModelView):
         return jsonify({"code": -1000, "detail": "no such api", })
 
 
-dag_available_view = DagAvailableView(DagAvailable, settings.Session, category="Admin", name="Dag Active Manager")
+dag_available_view = DagAvailableView(DagAvailable, settings.Session, category="Manager", name="Dag Status Manager")
 
 
 dag_available_bp = Blueprint(
